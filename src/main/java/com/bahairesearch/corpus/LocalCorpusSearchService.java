@@ -28,13 +28,22 @@ public final class LocalCorpusSearchService {
     private record HitsResult(List<CorpusSearchHit> hits, String effectiveQuery, boolean usedFallback) {}
 
     private static final Set<String> NOISE_TOKENS = Set.of(
-        "by", "for", "with", "and", "the", "from", "about", "quotes", "quote", "please", "show", "find"
+        "by", "for", "with", "and", "the", "from", "about",
+        "quotes", "quote", "please", "show", "find",
+        "are", "but", "can", "had", "has", "its", "may", "not", "out", "was",
+        "all", "any", "she", "who", "why", "yet", "you", "how", "let", "too", "now"
     );
     private static final Set<String> GENERIC_QUERY_TOKENS = Set.of(
         "book", "books", "most", "issue", "issues"
     );
 
     private static final int NEAR_DISTANCE = 15;
+
+    /** Score multiplier applied to NEAR proximity hits so they rank above AND/OR FTS5 hits. */
+    private static final double NEAR_BOOST_MULTIPLIER = 1000.0;
+
+    /** Scores at or below this threshold are treated as phrase-LIKE matches (ranked by length). */
+    private static final double PHRASE_SCORE_THRESHOLD = -99995.0;
 
     private LocalCorpusSearchService() {
     }
@@ -161,7 +170,7 @@ public final class LocalCorpusSearchService {
             topical = mergeHits(combinedPhraseHits, topical);
             logCount(appConfig, "after phrase merge", topical.size());
 
-            if (!requestedBookTokens.isEmpty() && topical.size() < requestedQuotes) {
+            if (!requestedBookTokens.isEmpty() && topical.size() < requestedQuotes && !nearFired) {
                 List<CorpusSearchHit> additionalBookScopedHits = findAdditionalBookScopedHits(
                     corpusPaths,
                     requiredAuthor,
@@ -376,11 +385,6 @@ public final class LocalCorpusSearchService {
                     return Integer.compare(leftSourcePriority, rightSourcePriority);
                 }
 
-                int leftBand = qualityBand(left.quote());
-                int rightBand = qualityBand(right.quote());
-                if (leftBand != rightBand) {
-                    return Integer.compare(leftBand, rightBand);
-                }
                 return Double.compare(left.score(), right.score());
             })
             .toList();
@@ -534,42 +538,65 @@ public final class LocalCorpusSearchService {
 
         SQLException lastException = null;
         for (int attempt = 1; attempt <= 3; attempt++) {
-            List<CorpusSearchHit> hits = new ArrayList<>();
             try (Connection connection = CorpusConnectionFactory.open(corpusPaths)) {
-                // Try NEAR first (exactly-2-token queries only), then AND, then OR fallback
-                String effectiveQuery = ftsQuery;
+                List<CorpusSearchHit> hits = List.of();
                 boolean usedOrFallback = false;
+                String effectiveQuery = ftsQuery;
+                boolean nearAttempted = false;
 
                 if (nearQuery != null && !nearQuery.isBlank()) {
+                    nearAttempted = true;
+
+                    // 1) Run NEAR query (proximity — exacting)
                     logCount(appConfig, "FtsQuery NEAR: " + nearQuery + " →", 0);
-                    hits = executeHitsQuery(connection, sql, nearQuery,
+                    List<CorpusSearchHit> nearHits = executeHitsQuery(connection, sql, nearQuery,
                         authorScoped, requiredAuthor, titleScoped, explicitTitle, limit);
-                    logCount(appConfig, "FtsQuery NEAR hits", hits.size());
-                    if (!hits.isEmpty()) effectiveQuery = nearQuery;
+                    logCount(appConfig, "NEAR hits", nearHits.size());
+
+                    // 2) Run AND query to supplement — NEAR can be thin
+                    logCount(appConfig, "FtsQuery AND (supplement): " + ftsQuery + " →", 0);
+                    List<CorpusSearchHit> andHits = executeHitsQuery(connection, sql, ftsQuery,
+                        authorScoped, requiredAuthor, titleScoped, explicitTitle, limit);
+                    logCount(appConfig, "AND supplement hits", andHits.size());
+
+                    // 3) Boost NEAR scores so proximity matches rank above AND hits
+                    if (!nearHits.isEmpty()) {
+                        nearHits = applyNearBoost(nearHits);
+                    }
+
+                    // 4) Merge: NEAR first (boosted), then AND (deduplicated)
+                    hits = mergeHits(nearHits, andHits);
+
+                    if (!nearHits.isEmpty()) {
+                        effectiveQuery = nearQuery;
+                    } else if (!andHits.isEmpty()) {
+                        effectiveQuery = ftsQuery;
+                    }
                 }
 
-                if (hits.isEmpty()) {
+                if (!nearAttempted) {
                     logCount(appConfig, "FtsQuery AND: " + ftsQuery + " →", 0);
                     hits = executeHitsQuery(connection, sql, ftsQuery,
                         authorScoped, requiredAuthor, titleScoped, explicitTitle, limit);
-                    logCount(appConfig, "FtsQuery AND hits", hits.size());
+                    logCount(appConfig, "AND hits", hits.size());
+
+                    if (hits.isEmpty() && !orFtsQuery.isBlank() && !orFtsQuery.equals(ftsQuery)) {
+                        logCount(appConfig, "FtsQuery OR: " + orFtsQuery + " →", 0);
+                        hits = executeHitsQuery(connection, sql, orFtsQuery,
+                            authorScoped, requiredAuthor, titleScoped, explicitTitle, limit);
+                        logCount(appConfig, "OR hits", hits.size());
+                        usedOrFallback = true;
+                        effectiveQuery = orFtsQuery;
+                    }
                 }
 
-                if (hits.isEmpty() && !orFtsQuery.isBlank() && !orFtsQuery.equals(ftsQuery)) {
-                    logCount(appConfig, "FtsQuery AND=0, OR: " + orFtsQuery + " →", 0);
-                    hits = executeHitsQuery(connection, sql, orFtsQuery,
-                        authorScoped, requiredAuthor, titleScoped, explicitTitle, limit);
-                    logCount(appConfig, "FtsQuery OR hits", hits.size());
-                    usedOrFallback = true;
-                    effectiveQuery = orFtsQuery;
-                }
+                // Note: book filter not applied here — it runs in search() after author/content filtering.
+                // Keeping it here would be redundant and would double-filter.
 
-                if (!requestedBookTokens.isEmpty()) {
-                    hits = filterByRequestedBook(hits, requestedBookTokens);
-                }
-
-                return new HitsResult(hits.stream().limit(Math.max(1, limit)).toList(),
-                    effectiveQuery, usedOrFallback);
+                List<CorpusSearchHit> limited = hits.stream()
+                    .limit(Math.max(1, limit))
+                    .toList();
+                return new HitsResult(limited, effectiveQuery, usedOrFallback);
             } catch (SQLException exception) {
                 lastException = exception;
                 if (!isBusyLock(exception) || attempt == 3) {
@@ -586,6 +613,16 @@ public final class LocalCorpusSearchService {
         }
 
         throw new IllegalStateException("Local corpus query failed.", lastException);
+    }
+
+    /** Multiplies each hit's BM25 score so NEAR proximity results rank above AND/OR hits. */
+    private static List<CorpusSearchHit> applyNearBoost(List<CorpusSearchHit> hits) {
+        return hits.stream()
+            .map(hit -> new CorpusSearchHit(
+                hit.quote(), hit.author(), hit.title(),
+                hit.locator(), hit.sourceUrl(),
+                hit.score() * NEAR_BOOST_MULTIPLIER))
+            .toList();
     }
 
     private static List<CorpusSearchHit> executeHitsQuery(
@@ -842,7 +879,7 @@ public final class LocalCorpusSearchService {
 
         List<String> terms = new ArrayList<>();
         for (String token : normalizedTopic.split("\\s+")) {
-            if (token.length() < 4) {
+            if (token.length() < 3) {
                 continue;
             }
             if (NOISE_TOKENS.contains(token) || GENERIC_QUERY_TOKENS.contains(token) || authorTerms.contains(token)) {
@@ -1084,15 +1121,20 @@ public final class LocalCorpusSearchService {
     }
 
     /**
-     * Build a NEAR proximity query — only for exactly-2-token searches.
-     * Returns "NEAR(token1 token2, 15)" when topic yields exactly 2 FTS tokens, else "".
+     * Build a NEAR proximity query — for 2–3 token searches.
+     * Returns "NEAR(token1 token2, 15)" for 2-token queries.
+     * For 3 tokens, appends a standalone OR token so three-word phrases match broadly.
      * When NEAR fires and finds results, phrase/LIKE search is skipped to preserve
      * the tight proximity constraint (LIKE would re-add passages where the terms appear far apart).
      */
     private static String toFtsQueryNear(String topic, String resolvedAuthor) {
         List<String> tokens = extractFtsTokens(topic, resolvedAuthor);
-        if (tokens.size() != 2) {
+        int tokenCount = tokens.size();
+        if (tokenCount < 2 || tokenCount > 3) {
             return "";
+        }
+        if (tokenCount == 3) {
+            return "NEAR(" + tokens.get(0) + " " + tokens.get(1) + ", " + NEAR_DISTANCE + ") OR " + tokens.get(2);
         }
         return "NEAR(" + tokens.get(0) + " " + tokens.get(1) + ", " + NEAR_DISTANCE + ")";
     }
