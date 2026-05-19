@@ -6,7 +6,7 @@ import com.bahairesearch.corpus.CorpusIngestService;
 import com.bahairesearch.corpus.LocalCorpusSearchService;
 import com.bahairesearch.config.AppConfig;
 import com.bahairesearch.config.ConfigLoader;
-import com.bahairesearch.model.ResearchReport;
+import com.bahairesearch.common.model.ResearchReport;
 
 import java.util.List;
 

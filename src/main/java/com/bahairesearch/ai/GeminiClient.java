@@ -1,9 +1,9 @@
 package com.bahairesearch.ai;
 
 import com.bahairesearch.config.AppConfig;
-import com.bahairesearch.corpus.CorpusSearchHit;
-import com.bahairesearch.model.QuoteResult;
-import com.bahairesearch.model.ResearchReport;
+import com.bahairesearch.common.model.CorpusSearchHit;
+import com.bahairesearch.common.model.QuoteResult;
+import com.bahairesearch.common.model.ResearchReport;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.MediaType;

@@ -17,7 +17,7 @@ set "PACKAGE_NAME=%~1"
 if "%PACKAGE_NAME%"=="" set "PACKAGE_NAME=installer"
 
 set "ROOT=%~dp0"
-set "JAR=%ROOT%target\BahaiResearch-1.1.0-SNAPSHOT-all.jar"
+set "JAR=%ROOT%target\BahaiResearch-1.2.0-SNAPSHOT-all.jar"
 set "RUNTIME=%ROOT%runtime"
 set "STAGING=%ROOT%dist\jpackage-input"
 set "OUT=%ROOT%dist\%PACKAGE_NAME%"
@@ -79,11 +79,11 @@ echo [3/4] Running jpackage (exe installer -- requires WiX Toolset 3.x)...
 "%JPACKAGE_EXE%" ^
   --type exe ^
   --name BahaiResearch ^
-  --app-version 1.1.0 ^
+  --app-version 1.2.0 ^
   --vendor "BahaiResearch" ^
   --description "Baha'i scripture research tool" ^
   --input "%STAGING%" ^
-  --main-jar BahaiResearch-1.1.0-SNAPSHOT-all.jar ^
+  --main-jar BahaiResearch-1.2.0-SNAPSHOT-all.jar ^
   --runtime-image "%RUNTIME%" ^
   --java-options "-Dbahai.keyPath=$APPDIR\bahai-research.properties" ^
   --java-options "-Dbahai.corpusPath=$APPDIR\data\corpus" ^
@@ -101,10 +101,10 @@ if errorlevel 1 (
   "%JPACKAGE_EXE%" ^
     --type app-image ^
     --name BahaiResearch ^
-    --app-version 1.1.0 ^
+    --app-version 1.2.0 ^
     --vendor "BahaiResearch" ^
     --input "%STAGING%" ^
-    --main-jar BahaiResearch-1.1.0-SNAPSHOT-all.jar ^
+    --main-jar BahaiResearch-1.2.0-SNAPSHOT-all.jar ^
     --runtime-image "%RUNTIME%" ^
     --java-options "-Dbahai.keyPath=$APPDIR\bahai-research.properties" ^
     --java-options "-Dbahai.corpusPath=$APPDIR\data\corpus" ^
