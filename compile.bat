@@ -1,1 +1,1 @@
-mvn -DskipTests package
+gradlew.bat shadowJar

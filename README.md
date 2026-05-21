@@ -49,6 +49,10 @@ All commands below are run from project root.
 ```cmd
 mvn -DskipTests package  
 ```
+or
+``` cmd
+gradlew.bat shadowJar
+```
 
 2) (Optional but recommended for end-user distribution) Build private Java runtime:
 
@@ -71,6 +75,8 @@ Most updates only need:
 
 ```cmd
 mvn -DskipTests package
+or
+gradlew.bat shadowJar
 package-installer.bat
 ```
 
@@ -85,12 +91,16 @@ Primary jar:
 
 ```cmd
 mvn -DskipTests package
+or
+gradlew.bat shadowJar
 ```
 
 produces:
 
 ```text
 target/BahaiResearch-1.0.0-SNAPSHOT-all.jar
+or 
+build/libs/BahaiResearch-1.0.0-SNAPSHOT-all.jar
 ```
 
 Packaging script (if used) produces:

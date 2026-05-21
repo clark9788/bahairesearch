@@ -4,7 +4,7 @@ setlocal
 REM Build a Windows installer (.exe) for BahaiResearch using jpackage.
 REM
 REM Prerequisites (run in order):
-REM   1) mvn -DskipTests package          (produces fat JAR)
+REM   1) gradlew.bat shadowJar             (produces fat JAR)
 REM   2) build-runtime-image.bat          (produces runtime\ JRE)
 REM   3) This script
 REM
@@ -17,7 +17,8 @@ set "PACKAGE_NAME=%~1"
 if "%PACKAGE_NAME%"=="" set "PACKAGE_NAME=installer"
 
 set "ROOT=%~dp0"
-set "JAR=%ROOT%target\BahaiResearch-1.2.0-SNAPSHOT-all.jar"
+REM set "JAR=%ROOT%target\BahaiResearch-1.2.0-SNAPSHOT-all.jar"
+set "JAR=%ROOT%build\libs\BahaiResearch-1.3.0-SNAPSHOT-all.jar"
 set "RUNTIME=%ROOT%runtime"
 set "STAGING=%ROOT%dist\jpackage-input"
 set "OUT=%ROOT%dist\%PACKAGE_NAME%"
@@ -36,7 +37,8 @@ if not exist "%JPACKAGE_EXE%" (
 
 REM ── Prerequisites ─────────────────────────────────────────────────────────
 if not exist "%JAR%" (
-  echo ERROR: Missing JAR. Run: mvn -DskipTests package
+  REM echo ERROR: Missing JAR. Run: mvn -DskipTests package
+  echo ERROR: Missing JAR. Run: gradlew.bat shadowJar
   exit /b 1
 )
 if not exist "%RUNTIME%\bin\java.exe" (
@@ -79,11 +81,11 @@ echo [3/4] Running jpackage (exe installer -- requires WiX Toolset 3.x)...
 "%JPACKAGE_EXE%" ^
   --type exe ^
   --name BahaiResearch ^
-  --app-version 1.2.0 ^
+  --app-version 1.3.0 ^
   --vendor "BahaiResearch" ^
   --description "Baha'i scripture research tool" ^
   --input "%STAGING%" ^
-  --main-jar BahaiResearch-1.2.0-SNAPSHOT-all.jar ^
+  --main-jar BahaiResearch-1.3.0-SNAPSHOT-all.jar ^
   --runtime-image "%RUNTIME%" ^
   --java-options "-Dbahai.keyPath=$APPDIR\bahai-research.properties" ^
   --java-options "-Dbahai.corpusPath=$APPDIR\data\corpus" ^
@@ -101,10 +103,10 @@ if errorlevel 1 (
   "%JPACKAGE_EXE%" ^
     --type app-image ^
     --name BahaiResearch ^
-    --app-version 1.2.0 ^
+    --app-version 1.3.0 ^
     --vendor "BahaiResearch" ^
     --input "%STAGING%" ^
-    --main-jar BahaiResearch-1.2.0-SNAPSHOT-all.jar ^
+    --main-jar BahaiResearch-1.3.0-SNAPSHOT-all.jar ^
     --runtime-image "%RUNTIME%" ^
     --java-options "-Dbahai.keyPath=$APPDIR\bahai-research.properties" ^
     --java-options "-Dbahai.corpusPath=$APPDIR\data\corpus" ^

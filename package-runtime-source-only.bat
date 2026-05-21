@@ -14,12 +14,14 @@ set "OUT=%ROOT%dist\%PACKAGE_NAME%"
 echo [1/5] Preparing output folder: %OUT%
 if exist "%OUT%" rmdir /s /q "%OUT%"
 mkdir "%OUT%"
-mkdir "%OUT%\target"
+REM mkdir "%OUT%\target"
+mkdir "%OUT%\build\libs"
 mkdir "%OUT%\data"
 mkdir "%OUT%\data\corpus"
 
 echo [2/5] Copying runtime artifacts...
-copy "%ROOT%target\BahaiResearch-1.0.0-SNAPSHOT-all.jar" "%OUT%\target\" >nul || goto :missingjar
+REM copy "%ROOT%target\BahaiResearch-1.0.0-SNAPSHOT-all.jar" "%OUT%\target\" >nul || goto :missingjar
+copy "%ROOT%build\libs\BahaiResearch-1.3.0-SNAPSHOT-all.jar" "%OUT%\build\libs\" >nul || goto :missingjar
 copy "%ROOT%run-app.bat" "%OUT%\" >nul
 copy "%ROOT%bahai-research.local-only.example.properties" "%OUT%\bahai-research.properties" >nul
 
@@ -58,8 +60,10 @@ echo %OUT%
 exit /b 0
 
 :missingjar
-echo ERROR: Missing JAR at target\BahaiResearch-1.0.0-SNAPSHOT-all.jar
-echo Build first: mvn -DskipTests package
+REM echo ERROR: Missing JAR at target\BahaiResearch-1.0.0-SNAPSHOT-all.jar
+echo ERROR: Missing JAR at build\libs\BahaiResearch-1.3.0-SNAPSHOT-all.jar
+REM echo Build first: mvn -DskipTests package
+echo Build first: gradlew.bat shadowJar
 exit /b 1
 
 :missingmanifest

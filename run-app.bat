@@ -35,4 +35,5 @@ if not exist "%JAVA_EXE%" (
   set "JAVA_EXE=java"
 )
 
-"%JAVA_EXE%" -jar "%~dp0target\BahaiResearch-1.0.0-SNAPSHOT-all.jar"
+REM "%JAVA_EXE%" -jar "%~dp0target\BahaiResearch-1.0.0-SNAPSHOT-all.jar"
+"%JAVA_EXE%" -jar "%~dp0build\libs\BahaiResearch-1.3.0-SNAPSHOT-all.jar"
