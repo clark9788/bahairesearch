@@ -14,6 +14,7 @@ import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Hyperlink;
@@ -283,8 +284,12 @@ public class BahaiResearch extends Application {
         quoteLabel.setEditable(false);
         quoteLabel.setWrapText(true);
         quoteLabel.setStyle("-fx-font-style: normal; -fx-font-size: 18px; -fx-font-weight: normal; -fx-background-color: transparent;");
-        quoteLabel.setPrefRowCount(5);
-        quoteLabel.setMaxHeight(Double.MAX_VALUE);
+        quoteLabel.setPrefRowCount(1);
+        quoteLabel.skinProperty().addListener((obs, old, skin) -> {
+            if (skin != null) Platform.runLater(() -> fitTextAreaToContent(quoteLabel));
+        });
+        quoteLabel.widthProperty().addListener((obs, old, w) ->
+            Platform.runLater(() -> fitTextAreaToContent(quoteLabel)));
 
         // Build deep link. Use localhost HTTP server so browser handles #fragment correctly —
         // Windows file:/// URIs with fragments are broken by Desktop.browse() and PowerShell.
@@ -314,6 +319,13 @@ public class BahaiResearch extends Application {
         card.setPadding(new Insets(6, 0, 6, 0));
         card.setStyle("-fx-border-color: #cccccc; -fx-border-width: 0 0 1 0;");
         return card;
+    }
+
+    private void fitTextAreaToContent(TextArea ta) {
+        Node textNode = ta.lookup(".text");
+        if (textNode != null) {
+            ta.setPrefHeight(textNode.getBoundsInLocal().getHeight() + 30);
+        }
     }
 
     /**

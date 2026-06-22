@@ -3,7 +3,7 @@
 ; Then open this file in Inno Setup Compiler (or right-click -> Compile).
 
 #define MyAppName "BahaiResearch"
-#define MyAppVersion "1.3.1"
+#define MyAppVersion "1.3.2"
 #define MyAppExeName "BahaiResearch.exe"
 #define MyAppSourceDir "dist\installer\BahaiResearch"
 
