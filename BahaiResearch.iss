@@ -34,6 +34,12 @@ Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional icons:"
 
+[InstallDelete]
+; Clean up old JAR files so only the new one remains
+Type: files; Name: "{app}\app\*.jar"
+; Clean up the SQLite database so the new version regenerates it with new sources
+Type: files; Name: "{app}\app\data\corpus\corpus.db"
+
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\app\data\corpus"
 
