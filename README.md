@@ -25,6 +25,11 @@ An Android port of this app exists at `D:/AI-Python/BahaiResearchA` (also on Git
 
 **That project is dependent on this one.** The Android app ships with a pre-built copy of `data/corpus/corpus.db` as a static asset. It does not perform ingestion. If new books are added to this corpus and re-ingested, the updated `corpus.db` must be copied to the Android project's `app/src/main/assets/corpus.db` to pick up the new content.
 
+## BahaiSearchCommon ##
+This is the common search routines used by this Windows version and the Android version.
+It is a separater project and is imported by gradle during the build of this project.
+
+
 ---
 
 ## Tech stack
@@ -32,7 +37,7 @@ An Android port of this app exists at `D:/AI-Python/BahaiResearchA` (also on Git
 - Java 21
 - JavaFX
 - SQLite
-- Maven
+- Gradle
 - Inno Setup
 - Optional Gemini API integration for intent/reranking
 
@@ -46,12 +51,9 @@ All commands below are run from project root.
 
 1) Build app jar:
 
-```cmd
-mvn -DskipTests package  
-```
-or
 ``` cmd
 gradlew.bat shadowJar
+build.gradle needs to be updated with new verion numbers.
 ```
 
 2) (Optional but recommended for end-user distribution) Build private Java runtime:
@@ -74,8 +76,6 @@ package-installer.bat //This must be updated in 6 places for new version
 Most updates only need:
 
 ```cmd
-mvn -DskipTests package
-or
 gradlew.bat shadowJar
 package-installer.bat
 ```
@@ -90,8 +90,6 @@ You only need to rerun `build-runtime-image.bat` when:
 Primary jar:
 
 ```cmd
-mvn -DskipTests package
-or
 gradlew.bat shadowJar
 ```
 

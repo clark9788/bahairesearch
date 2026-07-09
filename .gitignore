@@ -1,7 +1,8 @@
 # =========================
-# Build artifacts
+# Build artifacts (Gradle)
 # =========================
-target/
+build/
+
 runtime/
 dist/
 
