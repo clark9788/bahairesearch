@@ -36,6 +36,7 @@ bahai-research.properties
 *.iml
 .DS_Store
 Thumbs.db
+bin/
 
 # NOTE:
 # We are intentionally NOT ignoring:
