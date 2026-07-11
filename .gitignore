@@ -2,6 +2,7 @@
 # Build artifacts (Gradle)
 # =========================
 build/
+.gradle/
 
 runtime/
 dist/
