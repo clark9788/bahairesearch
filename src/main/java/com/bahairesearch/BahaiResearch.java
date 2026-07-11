@@ -300,18 +300,40 @@ public class BahaiResearch extends Application {
         Hyperlink sourceLink = new Hyperlink("Source \u2197");
         sourceLink.setStyle("-fx-font-size: 18px;");
         sourceLink.setOnAction(e -> {
+            System.out.println("Source link clicked! Locator: " + locator + ", RelativeSourceUrl: " + relativeSourceUrl + ", DeepLink: " + deepLink);
             try {
                 if (locator != null && locator.matches("\\d+")) {
                     // xhtml with anchor ID — open in browser via local HTTP server
-                    Desktop.getDesktop().browse(new URI(deepLink));
+                    System.out.println("Attempting to open via HostServices: " + deepLink);
+                    getHostServices().showDocument(deepLink);
+                    System.out.println("HostServices.showDocument called successfully.");
                 } else if (appConfig != null && relativeSourceUrl != null) {
                     // docx/pdf — open with registered OS handler (Word, Edge PDF viewer, etc.)
                     java.io.File file = Path.of(appConfig.corpusBasePath())
                         .resolve(relativeSourceUrl).toAbsolutePath().toFile();
-                    Desktop.getDesktop().open(file);
+                    String fileUri = file.toURI().toString();
+                    System.out.println("Attempting to open file via HostServices: " + fileUri);
+                    getHostServices().showDocument(fileUri);
+                    System.out.println("HostServices.showDocument called successfully for file.");
                 }
             } catch (Exception ex) {
-                // ignore — handler unavailable
+                System.err.println("Error opening document via HostServices: " + ex.getMessage());
+                ex.printStackTrace();
+                try {
+                    // Fallback to Desktop API if JavaFX HostServices fails
+                    if (locator != null && locator.matches("\\d+")) {
+                        System.out.println("Attempting fallback via Desktop.browse: " + deepLink);
+                        Desktop.getDesktop().browse(new URI(deepLink));
+                    } else if (appConfig != null && relativeSourceUrl != null) {
+                        java.io.File file = Path.of(appConfig.corpusBasePath())
+                            .resolve(relativeSourceUrl).toAbsolutePath().toFile();
+                        System.out.println("Attempting fallback via Desktop.open: " + file);
+                        Desktop.getDesktop().open(file);
+                    }
+                } catch (Exception fallbackEx) {
+                    System.err.println("Error opening document via Desktop API: " + fallbackEx.getMessage());
+                    fallbackEx.printStackTrace();
+                }
             }
         });
 
