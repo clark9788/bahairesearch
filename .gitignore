@@ -27,6 +27,7 @@ data/corpus/documents.csv
 # =========================
 *.properties
 !*.example.properties
+!gradle/wrapper/gradle-wrapper.properties
 bahai-research.properties
 
 # =========================
